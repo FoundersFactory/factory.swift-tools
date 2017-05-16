@@ -23,10 +23,15 @@ public class MagicRequestController {
     
     public func get(urlpath path: String, completion: @escaping (Any?, URLResponse?, Error?) -> Swift.Void) {
         
+        guard let url = URL(string: baseUrl.absoluteString + "/" + path) else {
+            completion(nil, nil, nil)
+            return
+        }
+        
         let defaultSessionConfiguration = URLSessionConfiguration.default
         let defaultSession = URLSession(configuration: defaultSessionConfiguration)
         
-        let urlRequest = URLRequest(url: baseUrl.appendingPathComponent(path))
+        let urlRequest = URLRequest(url: url)
         
         let dataTask = defaultSession.dataTask(with: urlRequest) { (data, response, error) in
             
@@ -47,16 +52,18 @@ public class MagicRequestController {
     
     public func post(urlpath path: String, body: [String: Any], completion: @escaping (Any?, URLResponse?, Error?) -> Swift.Void) {
         
-        guard let data = try? JSONSerialization.data(withJSONObject: body, options: []) else {
-            
-            completion(nil, nil, nil)
-            return
+        guard
+            let data = try? JSONSerialization.data(withJSONObject: body, options: []),
+            let url = URL(string: baseUrl.absoluteString + "/" + path)else {
+                
+                completion(nil, nil, nil)
+                return
         }
         
         let defaultSessionConfiguration = URLSessionConfiguration.default
         let defaultSession = URLSession(configuration: defaultSessionConfiguration)
         
-        var request = URLRequest(url: baseUrl.appendingPathComponent(path))
+        var request = URLRequest(url: url)
         request.httpBody = data
         request.allHTTPHeaderFields = ["Content-Type":"application/json"]
         request.httpMethod = "POST"
