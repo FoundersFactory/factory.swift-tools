@@ -28,34 +28,7 @@ public class MagicRequestController {
     
     public func get(urlpath path: String, parameters params: [String: String]?, completion: @escaping (Any?, URLResponse?, Error?) -> Swift.Void) {
         
-        var urlString = baseUrl.absoluteString + "/" + path
-        
-        if let params = params {
-            
-            if params.keys.count > 0 {
-                
-                var count = 0
-                
-                for key in params.keys {
-                    
-                    guard
-                        let encodedKey = key.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
-                        let encodedValue = params[key]!.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else {
-                            continue
-                    }
-                    
-                    if count == 0 {
-                        urlString = urlString + "?" + encodedKey + "=" + encodedValue
-                    } else {
-                        urlString = urlString + "&" + encodedKey + "=" + encodedValue
-                    }
-                    
-                    count += 1
-                }
-            }
-        }
-        
-        guard let url = URL(string: urlString) else {
+        guard let url = buildRequestUrl(path: path, params: params) else {
             completion(nil, nil, nil)
             return
         }
@@ -72,7 +45,6 @@ public class MagicRequestController {
                 let json = try? JSONSerialization.jsonObject(with: data, options: []) else {
                     
                     completion(nil, response, error)
-                    
                     return
             }
             
@@ -84,9 +56,14 @@ public class MagicRequestController {
     
     public func post(urlpath path: String, body: [String: Any], completion: @escaping (Any?, URLResponse?, Error?) -> Swift.Void) {
         
+        post(urlpath: path, parameters: nil, body: body, completion: completion)
+    }
+    
+    public func post(urlpath path: String, parameters params: [String: String]?, body: [String: Any], completion: @escaping (Any?, URLResponse?, Error?) -> Swift.Void) {
+        
         guard
             let data = try? JSONSerialization.data(withJSONObject: body, options: []),
-            let url = URL(string: baseUrl.absoluteString + "/" + path)else {
+            let url = buildRequestUrl(path: path, params: params) else {
                 
                 completion(nil, nil, nil)
                 return
@@ -115,5 +92,37 @@ public class MagicRequestController {
         }
         
         task.resume()
+    }
+    
+    private func buildRequestUrl(path: String, params: [String: String]?) -> URL? {
+        
+        var urlString = baseUrl.absoluteString + "/" + path
+        
+        if let params = params {
+            
+            if params.keys.count > 0 {
+                
+                var count = 0
+                
+                for key in params.keys {
+                    
+                    guard
+                        let encodedKey = key.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
+                        let encodedValue = params[key]!.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else {
+                            continue
+                    }
+                    
+                    if count == 0 {
+                        urlString = urlString + "?" + encodedKey + "=" + encodedValue
+                    } else {
+                        urlString = urlString + "&" + encodedKey + "=" + encodedValue
+                    }
+                    
+                    count += 1
+                }
+            }
+        }
+        
+        return URL(string: urlString)
     }
 }
