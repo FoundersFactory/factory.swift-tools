@@ -1,5 +1,5 @@
 //
-//  FactoryRequestController.swift
+//  MagicRequestController.swift
 //
 //  Created by Sam Houghton on 16/05/2017.
 //
@@ -23,7 +23,39 @@ public class MagicRequestController {
     
     public func get(urlpath path: String, completion: @escaping (Any?, URLResponse?, Error?) -> Swift.Void) {
         
-        guard let url = URL(string: baseUrl.absoluteString + "/" + path) else {
+        get(urlpath: path, parameters: nil, completion: completion)
+    }
+    
+    public func get(urlpath path: String, parameters params: [String: String]?, completion: @escaping (Any?, URLResponse?, Error?) -> Swift.Void) {
+        
+        var urlString = baseUrl.absoluteString + "/" + path
+        
+        if let params = params {
+            
+            if params.keys.count > 0 {
+                
+                var count = 0
+                
+                for key in params.keys {
+                    
+                    guard
+                        let encodedKey = key.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
+                        let encodedValue = params[key]!.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else {
+                            continue
+                    }
+                    
+                    if count == 0 {
+                        urlString = urlString + "?" + encodedKey + "=" + encodedValue
+                    } else {
+                        urlString = urlString + "&" + encodedKey + "=" + encodedValue
+                    }
+                    
+                    count += 1
+                }
+            }
+        }
+        
+        guard let url = URL(string: urlString) else {
             completion(nil, nil, nil)
             return
         }
