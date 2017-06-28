@@ -11,6 +11,8 @@ public class MagicRequestController {
     
     let baseUrl: URL
     
+    public var headers = [String: String]()
+    
     public init(baseUrl url: URL) {
         
         baseUrl = url
@@ -36,7 +38,12 @@ public class MagicRequestController {
         let defaultSessionConfiguration = URLSessionConfiguration.default
         let defaultSession = URLSession(configuration: defaultSessionConfiguration)
         
-        let urlRequest = URLRequest(url: url)
+        var urlRequest = URLRequest(url: url)
+        
+        for headerKey in headers.keys {
+            
+            urlRequest.addValue(headers[headerKey]!, forHTTPHeaderField: headerKey)
+        }
         
         let dataTask = defaultSession.dataTask(with: urlRequest) { (data, response, error) in
             
