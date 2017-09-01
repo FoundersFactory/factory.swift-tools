@@ -1,7 +1,8 @@
 //
 //  MagicRequestController.swift
 //
-//  Created by Sam Houghton on 16/05/2017.
+//  Created by Sam Houghton on 30/06/2017.
+//  Copyright © 2017 Sam Houghton. All rights reserved.
 //
 
 import Foundation
@@ -12,19 +13,54 @@ public class MagicRequestController {
     
     public var headers = [String: String]()
     
+    public var sessionDelegate: MagicSessionDelegate?
+    
     public init(baseUrl url: URL) {
         
         baseUrl = url
+        sessionDelegate = MagicSessionDelegate()
     }
     
     public init(urlString: String) {
         
         baseUrl = URL(string: urlString)!
+        sessionDelegate = MagicSessionDelegate()
     }
     
     public func get(urlpath path: String, completion: @escaping (Any?, URLResponse?, Error?) -> Swift.Void) {
         
         get(urlpath: path, parameters: nil, completion: completion)
+    }
+    
+    public func getData(urlpath path: String, parameters params: [String: String]?, completion: @escaping (Data?, URLResponse?, Error?) -> Swift.Void) {
+        
+        guard let url = buildRequestUrl(path: path, params: params) else {
+            completion(nil, nil, nil)
+            return
+        }
+        
+        let defaultSessionConfiguration = URLSessionConfiguration.default
+        let defaultSession = URLSession(configuration: defaultSessionConfiguration)
+        
+        var urlRequest = URLRequest(url: url)
+        
+        for headerKey in headers.keys {
+            
+            urlRequest.addValue(headers[headerKey]!, forHTTPHeaderField: headerKey)
+        }
+        
+        let dataTask = defaultSession.dataTask(with: urlRequest) { (data, response, error) in
+            
+            guard let data = data else {
+                
+                completion(nil, response, error)
+                return
+            }
+            
+            completion(data, response, error)
+        }
+        
+        dataTask.resume()
     }
     
     public func get(urlpath path: String, parameters params: [String: String]?, completion: @escaping (Any?, URLResponse?, Error?) -> Swift.Void) {
@@ -65,17 +101,14 @@ public class MagicRequestController {
         post(urlpath: path, parameters: nil, body: body, completion: completion)
     }
     
-    public func post(urlpath path: String, parameters params: [String: String]?, body: [String: Any]?, completion: @escaping (Any?, URLResponse?, Error?) -> Swift.Void) {
+    public func post(urlpath path: String, parameters params: [String: String]?, body: [String: Any], completion: @escaping (Any?, URLResponse?, Error?) -> Swift.Void) {
         
-        guard let url = buildRequestUrl(path: path, params: params) else {
-            
-            completion(nil, nil, nil)
-            return
-        }
-        
-        var data: Data?
-        if let _body = body {
-            data = try? JSONSerialization.data(withJSONObject: _body, options: [])
+        guard
+            let data = try? JSONSerialization.data(withJSONObject: body, options: []),
+            let url = buildRequestUrl(path: path, params: params) else {
+                
+                completion(nil, nil, nil)
+                return
         }
         
         let defaultSessionConfiguration = URLSessionConfiguration.default
@@ -147,7 +180,11 @@ public class MagicRequestController {
         
         let defaultSessionConfiguration = URLSessionConfiguration.default
         
-        let defaultSession = URLSession(configuration: defaultSessionConfiguration)
+        var defaultSession = URLSession(configuration: defaultSessionConfiguration)
+        
+        if let delegate = self.sessionDelegate {
+            defaultSession = URLSession(configuration: defaultSessionConfiguration, delegate: delegate, delegateQueue: nil)
+        }
         
         let task = defaultSession.dataTask(with: request) { (data, response, error) in
             guard let data = data else { completion(nil, response, error); return }
@@ -186,5 +223,19 @@ public class MagicRequestController {
         }
         
         return URL(string: urlString)
+    }
+}
+
+public class MagicSessionDelegate: NSObject, URLSessionTaskDelegate {
+    
+    var redirectHandler: ((_ resposne: HTTPURLResponse, _ newRequest: URLRequest) -> ())?
+    
+    public func urlSession(_ session: URLSession, task: URLSessionTask, willPerformHTTPRedirection response: HTTPURLResponse, newRequest request: URLRequest, completionHandler: @escaping (URLRequest?) -> Void) {
+        
+        if let handler = redirectHandler {
+            handler(response, request)
+        }
+        
+        completionHandler(request)
     }
 }
