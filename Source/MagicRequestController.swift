@@ -3,7 +3,6 @@
 //
 //  Created by Sam Houghton on 16/05/2017.
 //
-//
 
 import Foundation
 
@@ -66,14 +65,17 @@ public class MagicRequestController {
         post(urlpath: path, parameters: nil, body: body, completion: completion)
     }
     
-    public func post(urlpath path: String, parameters params: [String: String]?, body: [String: Any], completion: @escaping (Any?, URLResponse?, Error?) -> Swift.Void) {
+    public func post(urlpath path: String, parameters params: [String: String]?, body: [String: Any]?, completion: @escaping (Any?, URLResponse?, Error?) -> Swift.Void) {
         
-        guard
-            let data = try? JSONSerialization.data(withJSONObject: body, options: []),
-            let url = buildRequestUrl(path: path, params: params) else {
-                
-                completion(nil, nil, nil)
-                return
+        guard let url = buildRequestUrl(path: path, params: params) else {
+            
+            completion(nil, nil, nil)
+            return
+        }
+        
+        var data: Data?
+        if let _body = body {
+            data = try? JSONSerialization.data(withJSONObject: _body, options: [])
         }
         
         let defaultSessionConfiguration = URLSessionConfiguration.default
@@ -98,6 +100,59 @@ public class MagicRequestController {
             completion(json, response, error)
         }
         
+        task.resume()
+    }
+    
+    public func postForm(urlPath path: String, body: [String: String], completion: @escaping (Data?, URLResponse?, Error?) -> Swift.Void) {
+        
+        postForm(urlPath: path, parameters: nil, body: body, completion: completion)
+    }
+    
+    public func postForm(urlPath path: String, parameters params: [String: String]?, body: [String: String], completion: @escaping (Data?, URLResponse?, Error?) -> Swift.Void) {
+        
+        var formBodyString = ""
+        
+        for key in body.keys {
+            
+            if formBodyString == "" {
+                formBodyString += "\(key)=\(body[key]!)"
+            } else {
+                formBodyString += "&\(key)=\(body[key]!)"
+            }
+        }
+        
+        postForm(urlPath: path, parameters: params, body: formBodyString, completion: completion)
+    }
+    
+    public func postForm(urlPath path: String, parameters params: [String: String]?, body: String, completion: @escaping (Data?, URLResponse?, Error?) -> Swift.Void) {
+        
+        guard
+            let data = body.data(using: .utf8),
+            let url = buildRequestUrl(path: path, params: params) else {
+                
+                completion(nil, nil, nil)
+                return
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpBody = data
+        request.allHTTPHeaderFields = ["Content-Type":"application/x-www-form-urlencoded"]
+        
+        for headerKey in headers.keys {
+            
+            request.addValue(headers[headerKey]!, forHTTPHeaderField: headerKey)
+        }
+        
+        request.httpMethod = "POST"
+        
+        let defaultSessionConfiguration = URLSessionConfiguration.default
+        
+        let defaultSession = URLSession(configuration: defaultSessionConfiguration)
+        
+        let task = defaultSession.dataTask(with: request) { (data, response, error) in
+            guard let data = data else { completion(nil, response, error); return }
+            completion(data, response, error)
+        }
         task.resume()
     }
     
