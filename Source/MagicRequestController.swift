@@ -228,7 +228,7 @@ public class MagicRequestController {
 
 public class MagicSessionDelegate: NSObject, URLSessionTaskDelegate {
     
-    var redirectHandler: ((_ resposne: HTTPURLResponse, _ newRequest: URLRequest) -> ())?
+    public var redirectHandler: ((_ resposne: HTTPURLResponse, _ newRequest: URLRequest) -> ())?
     
     public func urlSession(_ session: URLSession, task: URLSessionTask, willPerformHTTPRedirection response: HTTPURLResponse, newRequest request: URLRequest, completionHandler: @escaping (URLRequest?) -> Void) {
         
