@@ -27,7 +27,7 @@ public class MagicRequestController {
         sessionDelegate = MagicSessionDelegate()
     }
     
-    public func get(urlpath path: String, completion: @escaping (Any?, URLResponse?, Error?) -> Swift.Void) {
+    public func get<T>(urlpath path: String, completion: @escaping (T?, URLResponse?, Error?) -> Swift.Void) {
         
         get(urlpath: path, parameters: nil, completion: completion)
     }
@@ -63,7 +63,7 @@ public class MagicRequestController {
         dataTask.resume()
     }
     
-    public func get(urlpath path: String, parameters params: [String: String]?, completion: @escaping (Any?, URLResponse?, Error?) -> Swift.Void) {
+    public func get<T>(urlpath path: String, parameters params: [String: String]?, completion: @escaping (T?, URLResponse?, Error?) -> Swift.Void) {
         
         guard let url = buildRequestUrl(path: path, params: params) else {
             completion(nil, nil, nil)
@@ -84,7 +84,8 @@ public class MagicRequestController {
             
             guard
                 let data = data,
-                let json = try? JSONSerialization.jsonObject(with: data, options: []) else {
+                let json = try? JSONSerialization.jsonObject(with: data, options: []),
+                let jsonType = json as? T else {
                     
                     completion(nil, response, error)
                     return
