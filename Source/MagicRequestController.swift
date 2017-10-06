@@ -91,7 +91,7 @@ public class MagicRequestController {
                     return
             }
             
-            completion(json, response, error)
+            completion(jsonType, response, error)
         }
         
         dataTask.resume()
