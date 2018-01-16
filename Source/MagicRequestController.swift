@@ -97,12 +97,12 @@ public class MagicRequestController {
         dataTask.resume()
     }
     
-    public func post(urlpath path: String, body: [String: Any], completion: @escaping (Any?, URLResponse?, Error?) -> Swift.Void) {
+    public func post(urlpath path: String?, body: [String: Any], completion: @escaping (Any?, URLResponse?, Error?) -> Swift.Void) {
         
         post(urlpath: path, parameters: nil, body: body, completion: completion)
     }
     
-    public func post(urlpath path: String, parameters params: [String: String]?, body: [String: Any], completion: @escaping (Any?, URLResponse?, Error?) -> Swift.Void) {
+    public func post(urlpath path: String?, parameters params: [String: String]?, body: [String: Any], completion: @escaping (Any?, URLResponse?, Error?) -> Swift.Void) {
         
         guard
             let data = try? JSONSerialization.data(withJSONObject: body, options: []),
@@ -194,10 +194,45 @@ public class MagicRequestController {
         task.resume()
     }
     
-    private func buildRequestUrl(path: String, params: [String: String]?) -> URL? {
+    func delete<T>(urlPath path: String, completion: @escaping (T?, URLResponse?, Error?) -> Swift.Void) {
         
-        var urlString = baseUrl.absoluteString + "/" + path
+        guard let url = buildRequestUrl(path: path, params: nil) else {
+                completion(nil, nil, nil)
+                return
+        }
         
+        let defaultSessionConfiguration = URLSessionConfiguration.default
+        let defaultSession = URLSession(configuration: defaultSessionConfiguration)
+        
+        var request = URLRequest(url: url)
+        request.allHTTPHeaderFields = ["Content-Type":"application/json"]
+        request.httpMethod = "DELETE"
+        
+        let task = defaultSession.dataTask(with: request) { (data, response, error) in
+            
+            guard
+                let data = data,
+                let json = try? JSONSerialization.jsonObject(with: data, options: []),
+                let jsonType = json as? T else {
+                    
+                    completion(nil, response, error)
+                    return
+            }
+            
+            completion(jsonType, response, error)
+        }
+        
+        task.resume()
+    }
+    
+    private func buildRequestUrl(path: String?, params: [String: String]?) -> URL? {
+        
+        var urlString = baseUrl.absoluteString
+        
+        if let _path = path {
+            urlString += "/" + _path
+        }
+                
         if let params = params {
             
             if params.keys.count > 0 {
