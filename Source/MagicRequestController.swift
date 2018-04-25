@@ -102,6 +102,68 @@ public class MagicRequestController {
         post(urlpath: path, parameters: nil, body: body, completion: completion)
     }
     
+    public func post(urlpath path: String?, bodyParams: [String: String], completion: @escaping (Any?, URLResponse?, Error?) -> Swift.Void) {
+        
+        guard let url = buildRequestUrl(path: path, params: nil) else {
+            
+            completion(nil, nil, nil)
+            return
+        }
+        
+        var bodyString = ""
+        
+        if bodyParams.keys.count > 0 {
+            
+            var count = 0
+            
+            for key in bodyParams.keys {
+                
+                guard
+                    let encodedKey = key.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
+                    let encodedValue = bodyParams[key]!.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else {
+                        continue
+                }
+                
+                if count == 0 {
+                    bodyString = encodedKey + "=" + encodedValue
+                } else {
+                    bodyString = bodyString + "&" + encodedKey + "=" + encodedValue
+                }
+                
+                count += 1
+            }
+        }
+        
+        let defaultSessionConfiguration = URLSessionConfiguration.default
+        let defaultSession = URLSession(configuration: defaultSessionConfiguration)
+        
+        var request = URLRequest(url: url)
+        request.httpBody = bodyString.data(using: .utf8)
+        request.allHTTPHeaderFields = ["Content-Type":"application/x-www-form-urlencoded"]
+        request.httpMethod = "POST"
+        
+        for headerKey in headers.keys {
+            
+            request.addValue(headers[headerKey]!, forHTTPHeaderField: headerKey)
+        }
+        
+        let task = defaultSession.dataTask(with: request) { (data, response, error) in
+            
+            guard
+                let data = data,
+                let json = try? JSONSerialization.jsonObject(with: data, options: []) else {
+                    
+                    completion(nil, response, error)
+                    
+                    return
+            }
+            
+            completion(json, response, error)
+        }
+        
+        task.resume()
+    }
+    
     public func post(urlpath path: String?, parameters params: [String: String]?, body: [String: Any], completion: @escaping (Any?, URLResponse?, Error?) -> Swift.Void) {
         
         guard
@@ -197,8 +259,8 @@ public class MagicRequestController {
     func delete<T>(urlPath path: String, completion: @escaping (T?, URLResponse?, Error?) -> Swift.Void) {
         
         guard let url = buildRequestUrl(path: path, params: nil) else {
-                completion(nil, nil, nil)
-                return
+            completion(nil, nil, nil)
+            return
         }
         
         let defaultSessionConfiguration = URLSessionConfiguration.default
@@ -232,7 +294,7 @@ public class MagicRequestController {
         if let _path = path {
             urlString += "/" + _path
         }
-                
+        
         if let params = params {
             
             if params.keys.count > 0 {
@@ -275,3 +337,4 @@ public class MagicSessionDelegate: NSObject, URLSessionTaskDelegate {
         completionHandler(request)
     }
 }
+
