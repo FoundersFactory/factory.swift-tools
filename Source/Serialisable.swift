@@ -8,7 +8,7 @@
 
 import Foundation
 
-protocol Serialisable {
+public protocol Serialisable {
     
     init(withDictionary dictionary: [String: Any])
     
